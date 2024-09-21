@@ -1,4 +1,4 @@
-name: Automated API tests using Postman CLI
+name: Testes de API Automatizados usando Postman CLI
 
 on: 
   push:
@@ -13,19 +13,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
-      # Install Postman CLI on Ubuntu
-      - name: Install Postman CLI
+
+      # Instalação do Postman CLI no Ubuntu
+      - name: Instalar Postman CLI
         run: |
           wget https://dl-cli.pstmn.io/install/linux64.sh
           chmod +x linux64.sh
           sudo ./linux64.sh
 
-      # Log in to Postman CLI using an API key stored in GitHub Secrets
-      - name: Login to Postman CLI
+      # Login no Postman CLI usando a chave da API armazenada nos segredos do GitHub
+      - name: Login no Postman CLI
         run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
 
-      # Run the Postman collection
-      - name: Run API tests
+      # Executa a collection do Postman
+      - name: Executar testes de API
         run: |
-          postman collection run "nagem_tst_pix.postman_collection.json" --environment="your-environment-file.json"
+          postman collection run "nagem_tst_pix.postman_collection.json" --environment="seu-arquivo-de-ambiente.json"
