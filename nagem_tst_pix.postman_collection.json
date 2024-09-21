@@ -1,0 +1,1333 @@
+{
+	"info": {
+		"_postman_id": "a69379a6-b045-4982-8295-2ca5ac758d3a",
+		"name": "OCC/APP - NAGEM TST - PIX",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "28912859",
+		"_collection_link": "https://restless-robot-9170-1.postman.co/workspace/occ~b33610ca-46e8-4b3a-a4cf-1ca2d96759b6/collection/28912859-a69379a6-b045-4982-8295-2ca5ac758d3a?action=share&source=collection_link&creator=28912859"
+	},
+	"item": [
+		{
+			"name": "1 - add prod",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// ----------- SCRIPTS DE TESTES ------------------\r",
+							"\r",
+							"pm.test(\"Verifica se o status code é 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"// pm.test(\"Check statusToken Redeemed\", function () {\r",
+							"//     pm.expect(\"Criado\").to.eql(JSON.parse(responseBody).statusToken);\r",
+							"// });\r",
+							"\r",
+							"// -------------------------------------------------\r",
+							"\r",
+							"try {\r",
+							"    const body = pm.response.json();\r",
+							"\r",
+							"    const order = body.embedded.order;\r",
+							"     const discount = order.shoppingCart.items[0].salePrice ? order.shoppingCart.items[0].rawTotalPrice - order.shoppingCart.items[0].salePrice : 0\r",
+							"\r",
+							"    const infoSetFields = [\r",
+							"        {id: \"shippingID\", data: order.shippingGroups[0].shippingGroupId},\r",
+							"        {id: \"orderIdBOLETO\", data: order.orderId},\r",
+							"        {id: \"amount\", data: order.priceInfo.total},\r",
+							"        {id: \"discountSalePrice\", data: discount},\r",
+							"    ]\r",
+							"\r",
+							"    infoSetFields.forEach(({id, data}) => pm.collectionVariables.set(id, data));\r",
+							"\r",
+							"    console.log(\"Produto adicionado com sucesso! ✅\");\r",
+							"} catch (err) {\r",
+							"    console.log(\"Aconteceu uma falha ao adicionar produto! ⛔ ⛔ ⛔\", err);\r",
+							"}\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const user_email = pm.collectionVariables.get(\"email_user_store\");\r",
+							"const user_password = pm.collectionVariables.get(\"password_user_store\");\r",
+							"const url_login = pm.collectionVariables.get(\"nagem_login\");\r",
+							"const nagem_store_base_url = pm.collectionVariables.get(\"nagem_store_base_url\")\r",
+							"\r",
+							"const postRequest = {\r",
+							"    url: url_login,\r",
+							"    method: 'POST',\r",
+							"    header: {\r",
+							"        \"Content-Type\": \"application/json\",\r",
+							"    },\r",
+							"    body: {\r",
+							"        mode: \"raw\",\r",
+							"        raw: JSON.stringify({\r",
+							"            email: user_email,\r",
+							"            password: user_password\r",
+							"        })\r",
+							"    }\r",
+							"};\r",
+							"\r",
+							"async function deleteItemsCart(payload) {\r",
+							"    try {\r",
+							"        await pm.sendRequest(payload);\r",
+							"        \r",
+							"        console.log(\"Carrinho esvaziado com sucesso! ✅\");\r",
+							"        \r",
+							"    } catch (err) {\r",
+							"        console.log(\"Aconteceu uma falha ao deletar itens do carrinho! ⛔ ⛔ ⛔\", err);\r",
+							"        if (err.name === \"JSONError\") {\r",
+							"            console.log(\"É possível que o seu token tenha expirado!!\");\r",
+							"        }\r",
+							"    }\r",
+							"};\r",
+							"\r",
+							"async function getCartItems(payload, authorization) {\r",
+							"    try {\r",
+							"        const request = await pm.sendRequest(payload);\r",
+							"        const response = request.json();\r",
+							"        const itemsCart = response.items;\r",
+							"\r",
+							"        if(itemsCart.length) {\r",
+							"            let commerceItemIds = []\r",
+							"            itemsCart.map(item => commerceItemIds = [...commerceItemIds, item.id])\r",
+							"            bodyPayload = {\r",
+							"                commerceItemIds: commerceItemIds\r",
+							"            }\r",
+							"\r",
+							"            const deleteItemsRequest = {\r",
+							"                url: `${nagem_store_base_url}/orders/current/items/delete`,\r",
+							"                method: 'POST',\r",
+							"                header: {\r",
+							"                    \"Content-Type\": \"application/json\",\r",
+							"                    'Authorization': `Bearer ${authorization}`\r",
+							"                },\r",
+							"                body: {\r",
+							"                    mode: \"raw\",\r",
+							"                    raw: JSON.stringify(bodyPayload)\r",
+							"                }\r",
+							"            };\r",
+							"            await deleteItemsCart(deleteItemsRequest)\r",
+							"        }\r",
+							"    } catch (err) {\r",
+							"        console.log(\"Seu carrinho ja esta vazio! ⛔ ⛔ ⛔\");\r",
+							"        if (err.name === \"JSONError\") {\r",
+							"            console.log(\"É possível que o seu token tenha expirado!!\");\r",
+							"        }\r",
+							"    }\r",
+							"};\r",
+							"\r",
+							"try {\r",
+							"    const request = await pm.sendRequest(postRequest);\r",
+							"\r",
+							"    const response = request.json();\r",
+							"\r",
+							"    const authorization = response.access_token;\r",
+							"    pm.collectionVariables.set('token', authorization);\r",
+							"\r",
+							"    const getCartItemsRequest = {\r",
+							"        url: `${nagem_store_base_url}/orders/current/items`,\r",
+							"        method: 'GET',\r",
+							"        header: {\r",
+							"            'Authorization': `Bearer ${authorization}`\r",
+							"        }\r",
+							"    };\r",
+							"\r",
+							"    await getCartItems(getCartItemsRequest, authorization);\r",
+							"\r",
+							"    console.log(\"Login efetuado com sucesso! ✅\");\r",
+							"} catch (err) {\r",
+							"    console.log(\"Aconteceu uma falha ao logar! ⛔ ⛔ ⛔\", err);\r",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"items\": [\r\n        {\r\n            \"productId\": \"{{productID}}\",\r\n            \"catRefId\": \"{{productID}}\",\r\n            \"quantity\": 1\r\n        }\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nagem_store_base_url}}/orders/current/items/add?exclude=embedded.order.shippingGroup%2Cembedded.order.shippingMethod%2Cembedded.order.shippingAddress",
+					"host": [
+						"{{nagem_store_base_url}}"
+					],
+					"path": [
+						"orders",
+						"current",
+						"items",
+						"add"
+					],
+					"query": [
+						{
+							"key": "exclude",
+							"value": "embedded.order.shippingGroup%2Cembedded.order.shippingMethod%2Cembedded.order.shippingAddress"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2 - add endereço",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// ----------- SCRIPTS DE TESTES ------------------\r",
+							"\r",
+							"pm.test(\"Verifica se o status code é 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Lê a variável de coleção 'shippingAddress'\r",
+							"const shippingAddressString = pm.collectionVariables.get(\"shippingAddress\");\r",
+							"\r",
+							"// Define a variável para o corpo da requisição\r",
+							"pm.variables.set(\"shippingAddress\", shippingAddressString);\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"shippingAddress\": {{shippingAddress}}\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nagem_store_base_url}}/orders/current/shippingGroups/{{shippingID}}?exclude=embedded.order.shippingGroup%2Cembedded.order.shippingMethod%2Cembedded.order.shippingAddress",
+					"host": [
+						"{{nagem_store_base_url}}"
+					],
+					"path": [
+						"orders",
+						"current",
+						"shippingGroups",
+						"{{shippingID}}"
+					],
+					"query": [
+						{
+							"key": "exclude",
+							"value": "embedded.order.shippingGroup%2Cembedded.order.shippingMethod%2Cembedded.order.shippingAddress"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3 - lista frete",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// ----------- SCRIPTS DE TESTES ------------------\r",
+							"\r",
+							"pm.test(\"Verifica se o status code é 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"//------------------------------------------------------\r",
+							"\r",
+							"\r",
+							"const body = pm.response.json();\r",
+							"const filterWordKey = \"000001\";\r",
+							"\r",
+							"const shippingMethods = [...body.items[0].shippingMethods];\r",
+							"\r",
+							"const shippingMethod = shippingMethods.filter((i) => {\r",
+							"    const displayName = `${i.displayName}`;\r",
+							"    return !displayName.includes(\"Retire na loja em\");\r",
+							"});\r",
+							"\r",
+							"if (shippingMethod.length > 0) {\r",
+							"    shippingMethod.forEach(i => {\r",
+							"        pm.collectionVariables.set(\"shippingGroupType\", i.shippingGroupType);\r",
+							"        pm.collectionVariables.set(\"shippingdisplayName\", i.displayName);\r",
+							"    });\r",
+							"} else {\r",
+							"    console.log(\"Nenhum método de envio válido encontrado.\");\r",
+							"}\r",
+							"\r",
+							"\r",
+							"\r",
+							"\r",
+							"\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nagem_store_base_url}}/shippingMethods?shippingGroupIds={{shippingID}}",
+					"host": [
+						"{{nagem_store_base_url}}"
+					],
+					"path": [
+						"shippingMethods"
+					],
+					"query": [
+						{
+							"key": "shippingGroupIds",
+							"value": "{{shippingID}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4 - add frete",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// pm.environment.set(\"shippingID\", JSON.parse(responseBody).embedded.order.shippingGroups[0].shippingGroupId)\r",
+							"\r",
+							"\r",
+							"// ----------- SCRIPTS DE TESTES ------------------\r",
+							"\r",
+							"pm.test(\"Verifica se o status code é 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"const body = pm.response.json();\r",
+							"const amount = pm.collectionVariables.get(\"amount\");\r",
+							"pm.collectionVariables.set(\"productPrice\", amount);\r",
+							"const shippingPrice = body.priceInfo.shipping;\r",
+							"pm.collectionVariables.set(\"shippingPrice\",shippingPrice);\r",
+							"const amountUpdate = amount + shippingPrice\r",
+							"pm.collectionVariables.set(\"amount\", amountUpdate);\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"type\": {{shippingGroupType}},\r\n    \"shippingMethod\": {\r\n        \"value\": {{shippingdisplayName}}\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nagem_store_base_url}}/orders/current/shippingGroups/{{shippingID}}?exclude=embedded.order.shippingGroup%2Cembedded.order.shippingMethod%2Cembedded.order.shippingAddress",
+					"host": [
+						"{{nagem_store_base_url}}"
+					],
+					"path": [
+						"orders",
+						"current",
+						"shippingGroups",
+						"{{shippingID}}"
+					],
+					"query": [
+						{
+							"key": "exclude",
+							"value": "embedded.order.shippingGroup%2Cembedded.order.shippingMethod%2Cembedded.order.shippingAddress"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5 - add pag - pix",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"\r",
+							"// ----------- SCRIPTS DE TESTES ------------------\r",
+							"\r",
+							"pm.test(\"Verifica se o status code é 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"\r",
+							"// --------------------------------- CHAMADA DA SEARCH MODAL -----------------------------------------------------\r",
+							"pm.collectionVariables.set(\"payment-method\", \"cash\");\r",
+							"const response = pm.response.json();\r",
+							"const filterWordKey = \"PIX\";\r",
+							"const discountSalePrice = pm.collectionVariables.get('discountSalePrice');\r",
+							"\r",
+							"const paymentMethods = response.items.flatMap(item => item.paymentMethods);\r",
+							"const filteredPaymentMethodsByBoleto = [...paymentMethods.filter(paymentMethod => paymentMethod.description === filterWordKey)];\r",
+							"\r",
+							"let paymentMethod;\r",
+							"if (filteredPaymentMethodsByBoleto) {\r",
+							"    let count = 0;\r",
+							"    filteredPaymentMethodsByBoleto.forEach(i => {\r",
+							"        if (i.orderPriority > count) {\r",
+							"            count = i.orderPriority;\r",
+							"            paymentMethod = i;\r",
+							"        };\r",
+							"    })\r",
+							"}\r",
+							"\r",
+							"const valorPedidoDesconto = paymentMethod.price;\r",
+							"const totalInterestOrDiscount = discountSalePrice ? paymentMethod.details[0].totalInterestOrDiscount - discountSalePrice : paymentMethod.details[0].totalInterestOrDiscount;\r",
+							"\r",
+							"pm.collectionVariables.set(\"total-interest-or-discount\", totalInterestOrDiscount);\r",
+							"\r",
+							"// ---------------------------------- CHAMADA DA ORACLE ---------------------------------------------------------\r",
+							"\r",
+							"const nagem_store_base_url = pm.collectionVariables.get(\"nagem_store_base_url\");\r",
+							"const add_pag_url = `${nagem_store_base_url}/orders/current/payments/add?exclude=embedded.order.shippingGroup%2Cembedded.order.shippingMethod%2Cembedded.order.shippingAddress`;\r",
+							"const shippingAddress = JSON.parse(pm.collectionVariables.get(\"shippingAddress\"));\r",
+							"\r",
+							"const amount = pm.collectionVariables.get(\"amount\");\r",
+							"const token = pm.collectionVariables.get('token');\r",
+							"\r",
+							"const authorization =  `Bearer ${token}`;\r",
+							"\r",
+							"const requestBody = {\r",
+							"    items: [\r",
+							"        {\r",
+							"            type: \"cash\",\r",
+							"            amount: amount,\r",
+							"            seqNum: 1,\r",
+							"            billingAddress: {\r",
+							"                lastName: shippingAddress.lastName,\r",
+							"                country: shippingAddress.country,\r",
+							"                address3: shippingAddress.address3,\r",
+							"                address2: shippingAddress.address2,\r",
+							"                city: shippingAddress.city,\r",
+							"                prefix: shippingAddress.prefix,\r",
+							"                address1: shippingAddress.address1,\r",
+							"                postalCode: shippingAddress.postalCode,\r",
+							"                companyName: shippingAddress.companyName,\r",
+							"                jobTitle: shippingAddress.jobTitle,\r",
+							"                county: shippingAddress.county,\r",
+							"                suffix: shippingAddress.suffix,\r",
+							"                firstName: shippingAddress.firstName,\r",
+							"                phoneNumber: shippingAddress.phoneNumber,\r",
+							"                faxNumber: shippingAddress.faxNumber,\r",
+							"                alias: \"Address\",\r",
+							"                middleName: shippingAddress.middleName,\r",
+							"                state: shippingAddress.state,\r",
+							"                email: null\r",
+							"            },\r",
+							"            customProperties: {\r",
+							"                numeroParcelas: 1,\r",
+							"                bandeiraCartao: \"\",\r",
+							"                tipoPagamento: 18,\r",
+							"                valorPedidoDesconto: valorPedidoDesconto,\r",
+							"                parcelas: {\r",
+							"                    portion: 1,\r",
+							"                    price: valorPedidoDesconto,\r",
+							"                    total: valorPedidoDesconto,\r",
+							"                    description: \"\",\r",
+							"                    totalInterestOrDiscount: paymentMethod.details[0].totalInterestOrDiscount,\r",
+							"                    code: 18,\r",
+							"                    flag: \"\"\r",
+							"                }\r",
+							"            }\r",
+							"        }\r",
+							"    ]\r",
+							"};\r",
+							"\r",
+							"const addPagPostRequest = {\r",
+							"    url: add_pag_url,\r",
+							"    method: 'POST',\r",
+							"    header: {\r",
+							"        \"Content-Type\": \"application/json\",\r",
+							"        'Authorization': authorization\r",
+							"    },\r",
+							"    body: {\r",
+							"        mode: \"raw\",\r",
+							"        raw: JSON.stringify(requestBody)\r",
+							"    }\r",
+							"};\r",
+							"\r",
+							"try {\r",
+							"    const addPagRequest = await pm.sendRequest(addPagPostRequest);\r",
+							"\r",
+							"    const addPagResponse = await addPagRequest.json();\r",
+							"    \r",
+							"    if (addPagResponse.items.length > 0) {\r",
+							"        pm.collectionVariables.set(\"paymentGroupId\", addPagResponse.items[0].paymentGroupId)\r",
+							"\r",
+							"        console.log(\"Pagamento para oracle adicionado com sucesso! ✅\");\r",
+							"    } else {\r",
+							"        console.log(\"Você não tem itens no carrinho, as próximas chamadas darão problema!! ⛔\");\r",
+							"    }\r",
+							"} catch (err) {\r",
+							"    console.log(\"Aconteceu uma falha ao adicionar pagamento! ⛔ ⛔ ⛔\", err);\r",
+							"    if (err.name === \"JSONError\") {\r",
+							"        console.log(\"É possível que o seu token tenha expirado!!\");\r",
+							"    }\r",
+							"}\r",
+							"\r",
+							"// ------------------------------- CHAMADA DAS PROPRIEDADES DINAMICAS -----------------------------------------\r",
+							"\r",
+							"const dinamicPropertiesUrl = `${nagem_store_base_url}/orders/current?exclude=shippingMethod`;\r",
+							"const productID = pm.collectionVariables.get(\"productID\");\r",
+							"const shipping = pm.collectionVariables.get(\"shippingPrice\")\r",
+							"\r",
+							"const pagPropertiesRequestBody = {\r",
+							"    x_origemPedido: \"B2C_OCC\",\r",
+							"    x_valorPedido: `${amount}`,\r",
+							"    x_itemsInstallments: `[{\\\"portion\\\":1,\\\"price\\\":${valorPedidoDesconto + shipping},\\\"description\\\":\\\"\\\",\\\"totalInterestOrDiscount\\\":${totalInterestOrDiscount},\\\"sku\\\":\\\"${productID}\\\"}]`,\r",
+							"    x_orderInstallments: `{\\\"portion\\\":1,\\\"price\\\":${valorPedidoDesconto + shipping},\\\"total\\\":${valorPedidoDesconto + shipping},\\\"description\\\":\\\"\\\",\\\"totalInterestOrDiscount\\\":${totalInterestOrDiscount},\\\"code\\\":7}`,\r",
+							"    x_itemsInstallments2: \"\",\r",
+							"    x_orderInstallments2: \"\",\r",
+							"    x_paymentDetails: \"{\\\"flags\\\":[\\\"PIX\\\"],\\\"cardNumbers\\\":[]}\",\r",
+							"    x_pickUpPersonDetails: \"{\\\"name\\\":\\\"Lucrecio Jose Da Hora Júnior\\\",\\\"document\\\":\\\"09195469435\\\",\\\"isThirdPartyTaker\\\":false}\",\r",
+							"    x_infoFrete: \"{\\\"freightCampaigns\\\":[],\\\"freightInfo\\\":{\\\"psobrt\\\":80,\\\"idftpotrt\\\":\\\"S\\\",\\\"frtpgotrd\\\":13,\\\"codSev\\\":\\\"0022\\\",\\\"idfemp\\\":\\\"0001\\\",\\\"urbanDeliveryHours\\\":0,\\\"isPickUp\\\":false,\\\"pickUpInStoreTimeUnitAvailability\\\":\\\"horas\\\",\\\"pickUpTime\\\":2}}\",\r",
+							"    x_prazoEntrega: \"3\",\r",
+							"    x_sode: \"0\"\r",
+							"}\r",
+							"\r",
+							"const dinamicPropertiesPostRequest = {\r",
+							"    url: dinamicPropertiesUrl,\r",
+							"    method: 'PATCH',\r",
+							"    header: {\r",
+							"        \"Content-Type\": \"application/json\",\r",
+							"        'Authorization': authorization\r",
+							"    },\r",
+							"    body: {\r",
+							"        mode: \"raw\",\r",
+							"        raw: JSON.stringify(pagPropertiesRequestBody)\r",
+							"    }\r",
+							"};\r",
+							"\r",
+							"try {\r",
+							"    const dinamicPropertiesRequest = await pm.sendRequest(dinamicPropertiesPostRequest);\r",
+							"\r",
+							"    if (dinamicPropertiesRequest.status === \"OK\") {\r",
+							"        console.log(\"Propriedades dinamics de pagamento adicionadas com sucesso! ✅\");\r",
+							"    }\r",
+							"} catch (err) {\r",
+							"    console.log(\"Aconteceu uma falha ao adicionar as propriedades dinamicas do pagamento! ⛔ ⛔ ⛔\", err);\r",
+							"    if (err.name === \"JSONError\") {\r",
+							"        console.log(\"É possível que o seu token tenha expirado!!\");\r",
+							"    }\r",
+							"}\r",
+							"\r",
+							"// ------------------------------- CREATE BILLING ADDRESS ------------------------------------------------------\r",
+							"\r",
+							"const billingAddress = {\r",
+							"    lastName: shippingAddress.lastName,\r",
+							"    country: shippingAddress.country,\r",
+							"    address3: shippingAddress.address3,\r",
+							"    address2: shippingAddress.address2,\r",
+							"    city: shippingAddress.city,\r",
+							"    prefix: shippingAddress.prefix,\r",
+							"    address1: shippingAddress.address1,\r",
+							"    postalCode: shippingAddress.postalCode,\r",
+							"    companyName: shippingAddress.companyName,\r",
+							"    jobTitle: shippingAddress.jobTitle,\r",
+							"    county: shippingAddress.county,\r",
+							"    suffix: shippingAddress.suffix,\r",
+							"    firstName: shippingAddress.firstName,\r",
+							"    phoneNumber: shippingAddress.phoneNumber,\r",
+							"    faxNumber: shippingAddress.faxNumber,\r",
+							"    alias: null,  // Se precisar de um valor padrão ou outro valor\r",
+							"    middleName: shippingAddress.middleName,\r",
+							"    state: shippingAddress.state,\r",
+							"    email: null  // Se precisar de um valor padrão ou outro valor\r",
+							"};\r",
+							"\r",
+							"pm.collectionVariables.set(\"billingAddress\", JSON.stringify(billingAddress));\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"items\": [\r\n        {\r\n            \"sku\": {{productID}},\r\n            \"productTypeId\": \"\",\r\n            \"brandId\": null,\r\n            \"quantity\": 1,\r\n            \"totalPrice\": {{productPrice}}\r\n        }\r\n    ],\r\n    \"shipping\": 0,\r\n    \"totalService\": 0,\r\n    \"cardValue\": {{productPrice}}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://www.nagem.com.br/wsqas/occ/payment/payment-methods/searchModal",
+					"protocol": "https",
+					"host": [
+						"www",
+						"nagem",
+						"com",
+						"br"
+					],
+					"path": [
+						"wsqas",
+						"occ",
+						"payment",
+						"payment-methods",
+						"searchModal"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "6 - finaliza pedido",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// ----------- SCRIPTS DE TESTES ------------------\r",
+							"\r",
+							"pm.test(\"Verifica se o status code é 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.collectionVariables.set(\"idPedido\", pm.response.json().id) \r",
+							"\r",
+							"const response = pm.response.json();\r",
+							"console.log(\"🛒 ID DO PEDIDO 🛒\", response.id)\r",
+							"// console.log(\"id do pedido\", response.id)\r",
+							"const token = pm.collectionVariables.get('token');\r",
+							"const occApiKey = pm.collectionVariables.get('occ-api-key-admin');\r",
+							"const authorization =  `Bearer ${token}`;\r",
+							"const authorizationAdminKey = `Bearer ${occApiKey}`;\r",
+							"const url = pm.collectionVariables.get('nagem_admin_base_url')\r",
+							"const url_order_submit = pm.collectionVariables.get('url_order_submit')\r",
+							"const shippingAddress = JSON.parse(pm.collectionVariables.get(\"shippingAddress\"));\r",
+							"const paymentMethod = pm.collectionVariables.get(\"payment-method\");\r",
+							"\r",
+							"async function orderSubmitRequest(orderDetails) {\r",
+							"    const orderPayload = {\r",
+							"        site: {\r",
+							"            siteURL: \"https://beta.nagem.com.br\",\r",
+							"            siteName: \"Nagem\"\r",
+							"        },\r",
+							"        discountInfo: {\r",
+							"            unclaimedCouponMultiPromotions: {},\r",
+							"            orderCouponsMap: {},\r",
+							"            orderDiscount: response.discountInfo.orderDiscount,\r",
+							"            shippingDiscount: response.discountInfo.shippingDiscount,\r",
+							"            orderImplicitDiscountList: [],\r",
+							"            unclaimedCouponsMap: {},\r",
+							"            claimedCouponMultiPromotions: {}\r",
+							"        },\r",
+							"        order: {\r",
+							"            ...orderDetails,\r",
+							"            paymentGroups: [\r",
+							"                {\r",
+							"                    ...orderDetails.paymentGroups[0],\r",
+							"                    billingAddress: {\r",
+							"                        lastName: shippingAddress.lastName,\r",
+							"                        country: shippingAddress.country,\r",
+							"                        address3: shippingAddress.address3,\r",
+							"                        address2: shippingAddress.address2,\r",
+							"                        city: shippingAddress.city,\r",
+							"                        prefix: shippingAddress.prefix,\r",
+							"                        address1: shippingAddress.address1,\r",
+							"                        postalCode: shippingAddress.postalCode,\r",
+							"                        companyName: shippingAddress.companyName,\r",
+							"                        jobTitle: shippingAddress.jobTitle,\r",
+							"                        county: shippingAddress.county,\r",
+							"                        suffix: shippingAddress.suffix,\r",
+							"                        firstName: shippingAddress.firstName,\r",
+							"                        phoneNumber: shippingAddress.phoneNumber,\r",
+							"                        faxNumber: shippingAddress.faxNumber,\r",
+							"                        alias: \"Address\",\r",
+							"                        middleName: shippingAddress.middleName,\r",
+							"                        state: shippingAddress.state,\r",
+							"                        email: null\r",
+							"                    }\r",
+							"                }\r",
+							"            ],\r",
+							"            submittedDate: orderDetails.freezeDate\r",
+							"        }\r",
+							"    };\r",
+							"\r",
+							"    console.log(orderPayload)\r",
+							"\r",
+							"    const orderSubmitRequest = {\r",
+							"        url: url_order_submit,\r",
+							"        method: 'POST',\r",
+							"        header: {\r",
+							"            \"Content-Type\": \"application/json\",\r",
+							"        },\r",
+							"        body: {\r",
+							"            mode: \"raw\",\r",
+							"            raw: JSON.stringify(orderPayload)\r",
+							"        }\r",
+							"    };\r",
+							"\r",
+							"    try {\r",
+							"        await pm.sendRequest(orderSubmitRequest);\r",
+							"\r",
+							"        console.log(\"Order Submit enviado com sucesso! ✅\");\r",
+							"    } catch (err) {\r",
+							"        console.log(\"Aconteceu uma falha ao enviar o Order Submit! ⛔ ⛔ ⛔\", err);\r",
+							"    }\r",
+							"\r",
+							"\r",
+							"}\r",
+							"\r",
+							"const url_login = pm.collectionVariables.get(\"occ_login_admin\");\r",
+							"\r",
+							"const postRequestLogin = {\r",
+							"    url: url_login,    \r",
+							"    method: 'POST',\r",
+							"    header: {\r",
+							"        'Authorization': authorizationAdminKey\r",
+							"    },\r",
+							"    body: {\r",
+							"        mode: 'urlencoded',\r",
+							"        urlencoded: [\r",
+							"            {key: \"grant_type\", value: \"client_credentials\"}\r",
+							"        ]\r",
+							"    }\r",
+							"};\r",
+							"\r",
+							"async function loginAdmin() {\r",
+							"    try {\r",
+							"        const request = await pm.sendRequest(postRequestLogin);\r",
+							"\r",
+							"        const response = request.json();\r",
+							"\r",
+							"        const authorization = response.access_token;\r",
+							"        pm.collectionVariables.set('token-admin', authorization);\r",
+							"\r",
+							"        console.log(\"Login ADMIN efetuado com sucesso! ✅\");\r",
+							"    } catch (err) {\r",
+							"        console.log(\"Aconteceu uma falha ao logar em ADMIN! ⛔ ⛔ ⛔\", err);\r",
+							"    }\r",
+							"}\r",
+							"\r",
+							"const get_order_url = `${url}/orders/${response.id}`\r",
+							"\r",
+							"async function fetchOrder() {\r",
+							"    try {\r",
+							"        await loginAdmin();\r",
+							"        const tokenAdmin = pm.collectionVariables.get('token-admin');\r",
+							"        const authorizationAdmin =  `Bearer ${tokenAdmin}`;\r",
+							"        const getOrderRequest = {\r",
+							"            url: get_order_url,\r",
+							"            method: 'GET',\r",
+							"            header: {\r",
+							"                'Authorization': authorizationAdmin\r",
+							"            }\r",
+							"        };\r",
+							"        const orderPropertiesRequest = await pm.sendRequest(getOrderRequest);\r",
+							"        const orderPropertiesResponse = await orderPropertiesRequest.json();\r",
+							"        orderSubmitRequest(orderPropertiesResponse);\r",
+							"    } catch (err) {\r",
+							"        console.log(\"Aconteceu uma falha ao buscar a ordem! ⛔ ⛔ ⛔\", err);\r",
+							"        if (err.name === \"JSONError\") {\r",
+							"            console.log(\"É possível que o seu token tenha expirado!!\");\r",
+							"        }\r",
+							"    }\r",
+							"}\r",
+							"\r",
+							"if (paymentMethod === \"cash\" || paymentMethod === \"invoice\") {\r",
+							"    fetchOrder()\r",
+							"}\r",
+							"\r",
+							"\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Parseia a variável de coleção shippingAddress\r",
+							"const shippingAddress = JSON.parse(pm.collectionVariables.get(\"shippingAddress\"));\r",
+							"const amount = pm.collectionVariables.get(\"amount\");\r",
+							"const shipping = pm.collectionVariables.get(\"shippingPrice\");\r",
+							"const paymentGroupId = pm.collectionVariables.get(\"paymentGroupId\");\r",
+							"const totalInterestOrDiscount = pm.collectionVariables.get(\"total-interest-or-discount\");\r",
+							"const paymentMethod = pm.collectionVariables.get(\"payment-method\");\r",
+							"console.log(paymentMethod)\r",
+							"// Prepara o objeto billingAddress usando os valores da variável shippingAddress\r",
+							"const billingAddress = {\r",
+							"    lastName: shippingAddress.lastName,\r",
+							"    country: shippingAddress.country,\r",
+							"    address3: shippingAddress.address3,\r",
+							"    address2: shippingAddress.address2,\r",
+							"    city: shippingAddress.city,\r",
+							"    prefix: shippingAddress.prefix,\r",
+							"    address1: shippingAddress.address1,\r",
+							"    postalCode: shippingAddress.postalCode,\r",
+							"    companyName: shippingAddress.companyName,\r",
+							"    jobTitle: shippingAddress.jobTitle,\r",
+							"    county: shippingAddress.county,\r",
+							"    suffix: shippingAddress.suffix,\r",
+							"    firstName: shippingAddress.firstName,\r",
+							"    phoneNumber: shippingAddress.phoneNumber,\r",
+							"    faxNumber: shippingAddress.faxNumber,\r",
+							"    alias: null,  // Se precisar de um valor padrão ou outro valor\r",
+							"    middleName: shippingAddress.middleName,\r",
+							"    state: shippingAddress.state,\r",
+							"    email: null  // Se precisar de um valor padrão ou outro valor\r",
+							"};\r",
+							"\r",
+							"// Define a variável billingAddress para ser usada no corpo da requisição\r",
+							"pm.variables.set(\"billingAddress\", JSON.stringify(billingAddress));\r",
+							"\r",
+							"const basePayload = {\r",
+							"    paymentGroupId: paymentGroupId,\r",
+							"    PONumber: null,\r",
+							"    amount: amount + shipping,\r",
+							"    customPaymentProperties: {},\r",
+							"    gatewayName: \"custom-gateway\",\r",
+							"    uiIntervention: null,\r",
+							"    paymentMethod: \"invoice\",\r",
+							"    isAmountRemaining: false,\r",
+							"    billingAddress: billingAddress,\r",
+							"    paymentState: \"INITIAL\",\r",
+							"    currencyCode: \"BRL\",\r",
+							"    type: \"invoice\",\r",
+							"    shippingAddress: billingAddress\r",
+							"}\r",
+							"\r",
+							"const cardPayload = {\r",
+							"    amount: amount,\r",
+							"    gatewayName: \"custom-gateway\",\r",
+							"    cardType: \"visa\",\r",
+							"    expiryMonth: \"05\",\r",
+							"    expiryYear: \"2028\",\r",
+							"    IIN: \"411111\",\r",
+							"    paymentGroupId: paymentGroupId,\r",
+							"    customPaymentProperties: {},\r",
+							"    nameOnCard: \"Matheus Teste\",\r",
+							"    uiIntervention: null,\r",
+							"    paymentMethod: \"card\",\r",
+							"    isAmountRemaining: false,\r",
+							"    billingAddress: billingAddress,\r",
+							"    paymentState: \"INITIAL\",\r",
+							"    currencyCode: \"BRL\",\r",
+							"    cardNumber: \"xxxxxxxxxxxx1111\",\r",
+							"    type: \"card\",\r",
+							"    shippingAddress: billingAddress\r",
+							"}\r",
+							"\r",
+							"const invoicePayload = {\r",
+							"    paymentGroupId: paymentGroupId,\r",
+							"    PONumber: null,\r",
+							"    amount: amount,\r",
+							"    customPaymentProperties: {},\r",
+							"    gatewayName: \"custom-gateway\",\r",
+							"    uiIntervention: null,\r",
+							"    paymentMethod: \"invoice\",\r",
+							"    isAmountRemaining: false,\r",
+							"    billingAddress: billingAddress,\r",
+							"    paymentState: \"INITIAL\",\r",
+							"    currencyCode: \"BRL\",\r",
+							"    type: \"invoice\",\r",
+							"    shippingAddress: billingAddress\r",
+							"}\r",
+							"\r",
+							"const pixPayload = {\r",
+							"    paymentGroupId: paymentGroupId,\r",
+							"    PONumber: null,\r",
+							"    amount: amount,\r",
+							"    customPaymentProperties: {},\r",
+							"    gatewayName: \"custom-gateway\",\r",
+							"    uiIntervention: null,\r",
+							"    paymentMethod: \"invoice\",\r",
+							"    isAmountRemaining: false,\r",
+							"    billingAddress: billingAddress,\r",
+							"    paymentState: \"INITIAL\",\r",
+							"    currencyCode: \"BRL\",\r",
+							"    type: \"invoice\",\r",
+							"    shippingAddress: billingAddress\r",
+							"}\r",
+							"\r",
+							"if (paymentMethod === \"invoice\") {\r",
+							"    pm.collectionVariables.set(\"payload-submit-order\", JSON.stringify(invoicePayload));\r",
+							"} else if (paymentMethod === \"cash\") {\r",
+							"    pm.collectionVariables.set(\"payload-submit-order\", JSON.stringify(pixPayload));\r",
+							"} else if (paymentMethod === \"card\") {\r",
+							"    pm.collectionVariables.set(\"payload-submit-order\", JSON.stringify(cardPayload));\r",
+							"} else {\r",
+							"    pm.collectionVariables.set(\"payload-submit-order\", JSON.stringify(basePayload));\r",
+							"}\r",
+							"\r",
+							"\r",
+							"\r",
+							"\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"payments\": [\r\n        {{payload-submit-order}}\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nagem_store_base_url}}/orders/current/submit?exclude=shippingGroup%2CshippingMethod%2CshippingAddress",
+					"host": [
+						"{{nagem_store_base_url}}"
+					],
+					"path": [
+						"orders",
+						"current",
+						"submit"
+					],
+					"query": [
+						{
+							"key": "exclude",
+							"value": "shippingGroup%2CshippingMethod%2CshippingAddress"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "7 - consulta pedido",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// ----------- SCRIPTS DE TESTES ------------------\r",
+							"\r",
+							"const response = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Verifica se o status code é 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Verifica data do PEDIDO\", function () {\r",
+							"    var data = response.EMISSAO\r",
+							"    var today = new Date();\r",
+							"    var todayFormatted = today.getFullYear().toString() + \r",
+							"                         ('0' + (today.getMonth() + 1)).slice(-2) + \r",
+							"                         ('0' + today.getDate()).slice(-2);\r",
+							"    pm.expect(todayFormatted).to.eql(data)\r",
+							"       \r",
+							"});\r",
+							"\r",
+							"pm.test(\"Validando valor do PEDIDO\", function () {\r",
+							"    var amount = pm.variables.get(\"amount\");\r",
+							"    var totalInterestOrDiscount = pm.variables.get(\"total-interest-or-discount\");  \r",
+							"    var valor = totalInterestOrDiscount ? amount + totalInterestOrDiscount : amount;\r",
+							"    pm.expect(valor).to.eql(response.VALORPEDIDO);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Validando valor do PRODUTO\", function () {\r",
+							"    var valorProd = pm.variables.get(\"productPrice\")\r",
+							"    pm.expect(valorProd).to.eql(response.VALORPRODUTO)\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Validando o valor de DESCONTO\", function () {\r",
+							"    var decount = pm.variables.get(\"total-interest-or-discount\");\r",
+							"    var discountValue = Math.abs(parseFloat(decount) || 0);\r",
+							"    pm.expect(discountValue).to.eql(response.DESCONTO);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Validando forma de PAGAMENTO\", function () {\r",
+							"    var codPix = parseInt(pm.variables.get(\"codPix\"));\r",
+							"    pm.expect(codPix).to.eql(response.FORMADEPAGAMENTO);\r",
+							"});\r",
+							"pm.test(\"Validando o valor do FRETE\", function () {\r",
+							"    var valorFrete = pm.variables.get(\"shippingPrice\");\r",
+							"    pm.expect(valorFrete).to.eql(response.FRETE)\r",
+							"});\r",
+							"\r",
+							"\r",
+							"\r",
+							" \r",
+							"function flashText(idPedido) {\r",
+							"  setTimeout(clearInterval, 60000);\r",
+							"  var result = fetch(`http://10.1.0.133/occ-cloud-qa/ordersubmmit/orders/${idPedido}`)\r",
+							"    .then((res) => {\r",
+							"      if (res!== null && !res.ok) {\r",
+							"        throw new Error(`HTTP error! Status: ${res.status}`);\r",
+							"      }\r",
+							"      return res.json();\r",
+							"    })\r",
+							"    .then((data) => {\r",
+							"    \r",
+							"    })\r",
+							"    .catch((error) => console.error(\"Unable to fetch data:\", error));\r",
+							"}\r",
+							"\r",
+							"// emissao\r",
+							"// emissaoPedido\r",
+							"// valorPedido\r",
+							"// valorDesconto\r",
+							"// formaPagamento\r",
+							"// valorFrete\r",
+							"// pm.test(\"Check is FullName is True\", function () {\r",
+							"//     pm.expect(pm.variables.get(\"FullName\")).to.eql(JSON.parse(responseBody).fullName);\r",
+							"// });"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"setTimeout(() => {}, 15000);\r",
+							" \r",
+							"\r",
+							"\r",
+							"// function flashText(idPedido) {\r",
+							"//   setTimeout(clearInterval, 30000);\r",
+							"//   var result = fetch(`http://10.1.0.133/occ-cloud-qa/ordersubmmit/orders/${idPedido}`)\r",
+							"//     .then((res) => {\r",
+							"//       if (res!== null && !res.ok) {\r",
+							"//         throw new Error(`HTTP error! Status: ${res.status}`);\r",
+							"//       }\r",
+							"//       console.log(res.json())\r",
+							"//       return res.json();\r",
+							"//     })\r",
+							"//     .then((data) => {\r",
+							"    \r",
+							"//     })\r",
+							"//     .catch((error) => console.error(\"Unable to fetch data:\", error));\r",
+							"// }"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://www.nagem.com.br/wsqas/occ/cloud/ordersubmmit/orders/{{idPedido}}",
+					"protocol": "https",
+					"host": [
+						"www",
+						"nagem",
+						"com",
+						"br"
+					],
+					"path": [
+						"wsqas",
+						"occ",
+						"cloud",
+						"ordersubmmit",
+						"orders",
+						"{{idPedido}}"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "productID",
+			"value": "254967",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "shippingID",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "orderIdBOLETO",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "paymentGroupId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "nagem_login",
+			"value": "https://www.nagem.com.br/wsqas/auth/login",
+			"type": "string"
+		},
+		{
+			"key": "nagem_store_base_url",
+			"value": "https://p9351450c1tst-store.occa.ocs.oraclecloud.com/ccstore/v1",
+			"type": "string"
+		},
+		{
+			"key": "email_user_store",
+			"value": "diana-berger@tuamaeaquelaursa.com",
+			"type": "string"
+		},
+		{
+			"key": "password_user_store",
+			"value": "Teste@123",
+			"type": "string"
+		},
+		{
+			"key": "shippingGroupType",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "shippingdisplayName",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "shippingAddress",
+			"value": "{\"addressType\": \"Address##0\",\"country\": \"BR\",\"lastName\": \"Fluxo Teste Nagem\",\"types\": [],\"address3\": \"teste\",\"city\": \"Camaragibe\",\"address2\": \"12345\",\"prefix\": null,\"address1\": \"Rua Padre Ozeas Cavalcante\",\"postalCode\": \"54759-060\",\"jobTitle\": null,\"companyName\": \"Casa\",\"county\": \"Bairro Novo do Carmelo\",\"suffix\": \"mercado\",\"firstName\": \"Conta\",\"externalAddressId\": null,\"phoneNumber\": \"81995553366\",\"repositoryId\": \"62050173\",\"faxNumber\": null,\"middleName\": null,\"state\": \"PE\",\"id\": \"62050173\",\"regionName\": \"Pernambuco\",\"countryName\": \"Brasil\"}",
+			"type": "string"
+		},
+		{
+			"key": "billingAddress",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "amount",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "occ-env",
+			"value": "p9351450c1tst-admin.occa.ocs.oraclecloud.com",
+			"type": "string"
+		},
+		{
+			"key": "payment-method",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "total-interest-or-discount",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "payload-submit-order",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "nagem_admin_base_url",
+			"value": "https://p9351450c1tst-admin.occa.ocs.oraclecloud.com/ccadmin/v1",
+			"type": "string"
+		},
+		{
+			"key": "occ-api-key-admin",
+			"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3MThmMzc4OS1jYTM5LTRlMzUtOGNmZS00NWI2N2IzMGZiZDAiLCJpc3MiOiJhcHBsaWNhdGlvbkF1dGgiLCJleHAiOjE3MjIzNjE1MjYsImlhdCI6MTY5MDgyNTUyNn0=.RYTXeGqluKbD1/py2SGnbF3MdkC7r0XCjp/ubKuxfdU=",
+			"type": "string"
+		},
+		{
+			"key": "token-admin",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "occ_login_admin",
+			"value": "https://p9351450c1tst-admin.occa.ocs.oraclecloud.com/ccadmin/v1/login/",
+			"type": "string"
+		},
+		{
+			"key": "url_order_submit",
+			"value": "https://api2.nagem.com.br/api/orderswk/orders",
+			"type": "string"
+		},
+		{
+			"key": "idPedido",
+			"value": ""
+		},
+		{
+			"key": "productPrice",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "shippingPrice",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "discountSalePrice",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "codPix",
+			"value": "18",
+			"type": "string"
+		}
+	]
+}
