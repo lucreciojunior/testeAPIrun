@@ -28,4 +28,4 @@ jobs:
       # Executa a collection do Postman
       - name: Executar testes de API
         run: |
-          postman collection run "nagem_tst_pix.postman_collection.json"
+          postman collection run "nagem_tst_pix.postman_collection.json" -e "TST_PIX.postman_environment"
